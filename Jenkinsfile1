@@ -1,4 +1,4 @@
-(without K8S Stage)
+#(without K8S Stage)
 pipeline {
     agent any
     tools {
@@ -16,7 +16,7 @@ pipeline {
         }
         stage('Checkout from Git') {
             steps {
-                git branch: 'main', url: 'https://github.com/yuvakishor123/Bms-project.git'
+                git branch: 'feature', url: 'https://github.com/yuvakishor123/Bms-project.git'
                 sh 'ls -la'  // Verify files after checkout
             }
         }
@@ -69,10 +69,10 @@ pipeline {
                     withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {
                         sh ''' 
                         echo "Building Docker image..."
-                        docker build --no-cache -t kastrov/bms:latest -f bookmyshow-app/Dockerfile bookmyshow-app
+                        docker build --no-cache -t yuvakishor/bms-new:v1 -f bookmyshow-app/Dockerfile bookmyshow-app
 
                         echo "Pushing Docker image to registry..."
-                        docker push kastrov/bms:latest
+                        docker push yuvakishor/bms-new:v1
                         '''
                     }
                 }
@@ -82,18 +82,18 @@ pipeline {
             steps {
                 sh ''' 
                 echo "Stopping and removing old container..."
-                docker stop bms || true
-                docker rm bms || true
+                docker stop bms-new || true
+                docker rm bms-new || true
 
-                echo "Running new container on port 3000..."
-                docker run -d --restart=always --name bms -p 3000:3000 kastrov/bms:latest
+                echo "Running new container on port 5685..."
+                docker run -d --restart=always --name bms-new -p 5685:5685 yuvakishor/bms-new:v1
 
                 echo "Checking running containers..."
                 docker ps -a
 
                 echo "Fetching logs..."
                 sleep 5  # Give time for the app to start
-                docker logs bms
+                docker logs bms-new
                 '''
             }
         }
@@ -105,7 +105,7 @@ pipeline {
                 body: "Project: ${env.JOB_NAME}<br/>" +
                       "Build Number: ${env.BUILD_NUMBER}<br/>" +
                       "URL: ${env.BUILD_URL}<br/>",
-                to: 'kastrokiran@gmail.com',
+                to: 'yuvakishor5685@gmail.com',
                 attachmentsPattern: 'trivyfs.txt,trivyimage.txt'
         }
     }
