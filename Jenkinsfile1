@@ -33,27 +33,6 @@ pipeline {
             }
         }
 
-        stage('Install Dependencies') {
-            steps {
-                dir('bookmyshow-app') {
-                    sh '''
-                        echo "Node version:"
-                        node --version
-
-                        echo "NPM version:"
-                        npm --version
-
-                        if [ -f package.json ]; then
-                            npm ci --no-audit --no-fund
-                        else
-                            echo "ERROR: package.json not found!"
-                            exit 1
-                        fi
-                    '''
-                }
-            }
-        }
-
         stage('SonarQube Analysis') {
             steps {
                 timeout(time: 5, unit: 'MINUTES') {
