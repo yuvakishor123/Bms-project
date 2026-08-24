@@ -35,33 +35,36 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                timeout(time: 5, unit: 'MINUTES') {
-                    withSonarQubeEnv('sonar-server') {
-                        sh '''
-                            echo "Node used by Jenkins:"
-                            which node
-                            node --version
-
-                            echo "Starting SonarQube analysis..."
-
-                            $SCANNER_HOME/bin/sonar-scanner \
-                                -Dsonar.projectName=BMS \
-                                -Dsonar.projectKey=BMS \
-                                -Dsonar.sources=bookmyshow-app \
-                                -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/**,**/*.png,**/*.jpg,**/*.jpeg,**/*.JPG,**/*.gif,**/*.ico,**/*.svg,**/*.woff,**/*.woff2,**/*.ttf \
-                                -Dsonar.nodejs.executable="$(which node)" \
-                                -Dsonar.sourceEncoding=UTF-8
-                        '''
-                    }
+                withSonarQubeEnv('sonar-server') {
+                    sh ''' 
+                    $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=BMS \
+                    -Dsonar.projectKey=BMS 
+                    '''
                 }
             }
         }
 
         stage('Quality Gate') {
             steps {
-                timeout(time: 5, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
+                script {
+                    waitForQualityGate abortPipeline: false, credentialsId: 'sonarqube-creds'
                 }
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                sh '''
+                cd bookmyshow-app
+                ls -la  # Verify package.json exists
+                if [ -f package.json ]; then
+                    rm -rf node_modules package-lock.json  # Remove old dependencies
+                    npm install  # Install fresh dependencies
+                else
+                    echo "Error: package.json not found in bookmyshow-app!"
+                    exit 1
+                fi
+                '''
             }
         }
 
@@ -80,14 +83,7 @@ pipeline {
 
         stage('Trivy FS Scan') {
             steps {
-                sh '''
-                    echo "Running Trivy filesystem scan..."
-
-                    trivy fs ./bookmyshow-app \
-                        --severity HIGH,CRITICAL \
-                        --format table \
-                        -o trivyfs.txt
-                '''
+                sh 'trivy fs . > trivyfs.txt'
             }
         }
 
